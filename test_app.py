@@ -2,7 +2,18 @@ import json
 import unittest
 from io import BytesIO
 
-from app import application
+import socket
+import threading
+import urllib.request
+
+from wsgiref.simple_server import make_server
+
+from app import (
+    ThreadingWSGIServer,
+    TimeoutRequestHandler,
+    application,
+    create_server,
+)
 
 
 def request(path, method="GET"):
@@ -99,6 +110,96 @@ class ApplicationTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "404 Not Found")
         self.assertEqual(response["body"], b"Not found")
+
+
+class ConnectionHandlingTests(unittest.TestCase):
+    def test_idle_connection_does_not_block_requests(self):
+        server = create_server("127.0.0.1", 0)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        idle = socket.create_connection(("127.0.0.1", port))
+        try:
+            with urllib.request.urlopen(
+                "http://127.0.0.1:%d/health" % port, timeout=5
+            ) as response:
+                self.assertEqual(response.status, 200)
+        finally:
+            idle.close()
+            server.shutdown()
+            server.server_close()
+
+    def test_idle_connection_is_closed_after_timeout(self):
+        class ShortTimeoutHandler(TimeoutRequestHandler):
+            timeout = 0.5
+
+        server = make_server(
+            "127.0.0.1",
+            0,
+            application,
+            server_class=ThreadingWSGIServer,
+            handler_class=ShortTimeoutHandler,
+        )
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        idle = socket.create_connection(("127.0.0.1", port))
+        try:
+            idle.settimeout(5)
+            # The server closes the idle socket (EOF) once its timeout fires,
+            # well before our longer client-side timeout.
+            self.assertEqual(idle.recv(1), b"")
+        finally:
+            idle.close()
+            server.shutdown()
+            server.server_close()
+
+    def test_partial_request_timeout_is_dropped_quietly(self):
+        class ShortTimeoutHandler(TimeoutRequestHandler):
+            timeout = 0.5
+
+        server = make_server(
+            "127.0.0.1",
+            0,
+            application,
+            server_class=ThreadingWSGIServer,
+            handler_class=ShortTimeoutHandler,
+        )
+        errors = []
+        server.handle_error = lambda request, client_address: errors.append(
+            client_address
+        )
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        partial = socket.create_connection(("127.0.0.1", port))
+        try:
+            partial.settimeout(5)
+            partial.sendall(b"GET /health HTTP/1.1\r\nHost: x\r\n")
+            self.assertEqual(partial.recv(1), b"")
+            self.assertEqual(errors, [])
+        finally:
+            partial.close()
+            server.shutdown()
+            server.server_close()
+
+    def test_environ_reports_multithread(self):
+        seen = {}
+
+        def capture(environ, start_response):
+            seen["multithread"] = environ["wsgi.multithread"]
+            start_response("200 OK", [("Content-Length", "0")])
+            return []
+
+        server = create_server("127.0.0.1", 0)
+        server.set_app(capture)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            urllib.request.urlopen(
+                "http://127.0.0.1:%d/" % port, timeout=5
+            ).close()
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertTrue(seen["multithread"])
 
 
 if __name__ == "__main__":

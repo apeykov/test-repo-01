@@ -1,7 +1,13 @@
 """Small example web application using only Python's standard library."""
 
 import json
-from wsgiref.simple_server import make_server
+from socketserver import ThreadingMixIn
+from wsgiref.simple_server import (
+    ServerHandler,
+    WSGIRequestHandler,
+    WSGIServer,
+    make_server,
+)
 
 
 STYLE = """
@@ -262,9 +268,58 @@ def application(environ, start_response):
     return [] if environ.get("REQUEST_METHOD") == "HEAD" else [body]
 
 
+class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    """Handle each connection in its own thread so idle ones cannot block others."""
+
+    daemon_threads = True
+
+
+class TimeoutRequestHandler(WSGIRequestHandler):
+    """Drop connections that stay idle instead of holding a thread forever."""
+
+    timeout = 15
+
+    def handle(self):
+        """Handle a request, reporting wsgi.multithread=True to the application."""
+        try:
+            self.raw_requestline = self.rfile.readline(65537)
+        except TimeoutError:
+            self.close_connection = True
+            return
+        if len(self.raw_requestline) > 65536:
+            self.requestline = ""
+            self.request_version = ""
+            self.command = ""
+            self.send_error(414)
+            return
+
+        try:
+            if not self.parse_request():
+                return
+        except TimeoutError:
+            self.close_connection = True
+            return
+
+        handler = ServerHandler(
+            self.rfile,
+            self.wfile,
+            self.get_stderr(),
+            self.get_environ(),
+            multithread=True,
+        )
+        handler.request_handler = self
+        handler.run(self.server.get_app())
+
+
 def create_server(host="127.0.0.1", port=8000):
     """Create the development server without starting it."""
-    return make_server(host, port, application)
+    return make_server(
+        host,
+        port,
+        application,
+        server_class=ThreadingWSGIServer,
+        handler_class=TimeoutRequestHandler,
+    )
 
 
 if __name__ == "__main__":
