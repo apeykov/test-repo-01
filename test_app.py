@@ -5,10 +5,10 @@ from io import BytesIO
 from app import application
 
 
-def request(path):
+def request(path, method="GET"):
     environ = {
         "PATH_INFO": path,
-        "REQUEST_METHOD": "GET",
+        "REQUEST_METHOD": method,
         "wsgi.input": BytesIO(),
     }
     response = {}
@@ -28,6 +28,24 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(response["status"], "200 OK")
         self.assertEqual(response["headers"]["Content-Type"], "text/html; charset=utf-8")
         self.assertIn(b"Hello from Python!", response["body"])
+        self.assertIn(b'href="/about"', response["body"])
+
+    def test_about_page(self):
+        response = request("/about")
+
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["headers"]["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn(b"<h1>About</h1>", response["body"])
+        self.assertIn(b'href="/"', response["body"])
+        self.assertEqual(int(response["headers"]["Content-Length"]), len(response["body"]))
+
+    def test_about_page_head(self):
+        response = request("/about", method="HEAD")
+        get_response = request("/about")
+
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["headers"], get_response["headers"])
+        self.assertEqual(response["body"], b"")
 
     def test_health_endpoint(self):
         response = request("/health")
