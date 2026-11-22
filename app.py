@@ -93,7 +93,12 @@ STYLE = """
     footer { text-align: center; color: var(--muted); padding: 24px; font-size: .9rem; }
 """
 
-NAV_ITEMS = [("/", "Home"), ("/about", "About"), ("/contact", "Contact")]
+NAV_ITEMS = [
+    ("/", "Home"),
+    ("/products", "Products"),
+    ("/about", "About"),
+    ("/contact", "Contact"),
+]
 
 
 def render_page(title, content, active):
@@ -143,6 +148,11 @@ HTML_PAGE = render_page(
           <h2>About</h2>
           <p>Learn more about this application.</p>
         </a>
+        <a class="card" href="/products">
+          <span class="icon">&#128717;&#65039;</span>
+          <h2>Products</h2>
+          <p>Browse our collection of products.</p>
+        </a>
         <a class="card" href="/contact">
           <span class="icon">&#9993;&#65039;</span>
           <h2>Contact Us</h2>
@@ -155,6 +165,33 @@ HTML_PAGE = render_page(
         </a>
       </section>""",
     "/",
+)
+
+PRODUCTS_PAGE = render_page(
+    "Products - Python demo app",
+    """      <div class="panel">
+        <h1>Products</h1>
+        <p class="notice">Explore a few products from our demo collection.</p>
+        <section class="grid">
+          <article class="card">
+            <span class="icon">&#128187;</span>
+            <h2>Starter Kit</h2>
+            <p>Everything you need to get started.</p>
+          </article>
+          <article class="card">
+            <span class="icon">&#9889;</span>
+            <h2>Pro Toolkit</h2>
+            <p>More tools for growing projects.</p>
+          </article>
+          <article class="card">
+            <span class="icon">&#128640;</span>
+            <h2>Enterprise Suite</h2>
+            <p>A complete package for larger teams.</p>
+          </article>
+        </section>
+        <a class="back" href="/">&larr; Back to home</a>
+      </div>""",
+    "/products",
 )
 
 ABOUT_PAGE = render_page(
@@ -192,6 +229,10 @@ def application(environ, start_response):
 
     if path == "/":
         body = HTML_PAGE.encode("utf-8")
+        status = "200 OK"
+        content_type = "text/html; charset=utf-8"
+    elif path == "/products":
+        body = PRODUCTS_PAGE.encode("utf-8")
         status = "200 OK"
         content_type = "text/html; charset=utf-8"
     elif path == "/about":

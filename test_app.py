@@ -28,8 +28,29 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(response["status"], "200 OK")
         self.assertEqual(response["headers"]["Content-Type"], "text/html; charset=utf-8")
         self.assertIn(b"Hello from Python!", response["body"])
+        self.assertIn(b'href="/products"', response["body"])
         self.assertIn(b'href="/about"', response["body"])
         self.assertIn(b'href="/contact"', response["body"])
+
+    def test_products_page(self):
+        response = request("/products")
+
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["headers"]["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn(b"<h1>Products</h1>", response["body"])
+        self.assertIn(b"<h2>Starter Kit</h2>", response["body"])
+        self.assertIn(b"<h2>Pro Toolkit</h2>", response["body"])
+        self.assertIn(b"<h2>Enterprise Suite</h2>", response["body"])
+        self.assertIn(b'aria-current="page"', response["body"])
+        self.assertEqual(int(response["headers"]["Content-Length"]), len(response["body"]))
+
+    def test_products_page_head(self):
+        response = request("/products", method="HEAD")
+        get_response = request("/products")
+
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["headers"], get_response["headers"])
+        self.assertEqual(response["body"], b"")
 
     def test_about_page(self):
         response = request("/about")
