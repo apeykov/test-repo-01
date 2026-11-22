@@ -15,7 +15,25 @@ HTML_PAGE = """<!doctype html>
     <main>
       <h1>Hello from Python!</h1>
       <p>This is a small example web application.</p>
+      <p><a href="/about">About</a></p>
       <p><a href="/health">Check application health</a></p>
+    </main>
+  </body>
+</html>
+"""
+
+ABOUT_PAGE = """<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>About - Python demo app</title>
+  </head>
+  <body>
+    <main>
+      <h1>About</h1>
+      <p>This is a small example web application built with Python's standard library.</p>
+      <p><a href="/">Back to home</a></p>
     </main>
   </body>
 </html>
@@ -28,6 +46,10 @@ def application(environ, start_response):
 
     if path == "/":
         body = HTML_PAGE.encode("utf-8")
+        status = "200 OK"
+        content_type = "text/html; charset=utf-8"
+    elif path == "/about":
+        body = ABOUT_PAGE.encode("utf-8")
         status = "200 OK"
         content_type = "text/html; charset=utf-8"
     elif path == "/health":
