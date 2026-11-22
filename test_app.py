@@ -121,6 +121,27 @@ class ConnectionHandlingTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
+    def test_environ_reports_multithread(self):
+        seen = {}
+
+        def capture(environ, start_response):
+            seen["multithread"] = environ["wsgi.multithread"]
+            start_response("200 OK", [("Content-Length", "0")])
+            return []
+
+        server = create_server("127.0.0.1", 0)
+        server.set_app(capture)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            urllib.request.urlopen(
+                "http://127.0.0.1:%d/" % port, timeout=5
+            ).close()
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertTrue(seen["multithread"])
+
 
 if __name__ == "__main__":
     unittest.main()

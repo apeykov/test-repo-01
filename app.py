@@ -2,7 +2,12 @@
 
 import json
 from socketserver import ThreadingMixIn
-from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
+from wsgiref.simple_server import (
+    ServerHandler,
+    WSGIRequestHandler,
+    WSGIServer,
+    make_server,
+)
 
 
 STYLE = """
@@ -273,6 +278,29 @@ class TimeoutRequestHandler(WSGIRequestHandler):
     """Drop connections that stay idle instead of holding a thread forever."""
 
     timeout = 15
+
+    def handle(self):
+        """Handle a request, reporting wsgi.multithread=True to the application."""
+        self.raw_requestline = self.rfile.readline(65537)
+        if len(self.raw_requestline) > 65536:
+            self.requestline = ""
+            self.request_version = ""
+            self.command = ""
+            self.send_error(414)
+            return
+
+        if not self.parse_request():
+            return
+
+        handler = ServerHandler(
+            self.rfile,
+            self.wfile,
+            self.get_stderr(),
+            self.get_environ(),
+            multithread=True,
+        )
+        handler.request_handler = self
+        handler.run(self.server.get_app())
 
 
 def create_server(host="127.0.0.1", port=8000):
