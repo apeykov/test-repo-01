@@ -281,7 +281,11 @@ class TimeoutRequestHandler(WSGIRequestHandler):
 
     def handle(self):
         """Handle a request, reporting wsgi.multithread=True to the application."""
-        self.raw_requestline = self.rfile.readline(65537)
+        try:
+            self.raw_requestline = self.rfile.readline(65537)
+        except TimeoutError:
+            self.close_connection = True
+            return
         if len(self.raw_requestline) > 65536:
             self.requestline = ""
             self.request_version = ""

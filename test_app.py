@@ -6,7 +6,14 @@ import socket
 import threading
 import urllib.request
 
-from app import application, create_server
+from wsgiref.simple_server import make_server
+
+from app import (
+    ThreadingWSGIServer,
+    TimeoutRequestHandler,
+    application,
+    create_server,
+)
 
 
 def request(path, method="GET"):
@@ -116,6 +123,30 @@ class ConnectionHandlingTests(unittest.TestCase):
                 "http://127.0.0.1:%d/health" % port, timeout=5
             ) as response:
                 self.assertEqual(response.status, 200)
+        finally:
+            idle.close()
+            server.shutdown()
+            server.server_close()
+
+    def test_idle_connection_is_closed_after_timeout(self):
+        class ShortTimeoutHandler(TimeoutRequestHandler):
+            timeout = 0.5
+
+        server = make_server(
+            "127.0.0.1",
+            0,
+            application,
+            server_class=ThreadingWSGIServer,
+            handler_class=ShortTimeoutHandler,
+        )
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        idle = socket.create_connection(("127.0.0.1", port))
+        try:
+            idle.settimeout(5)
+            # The server closes the idle socket (EOF) once its timeout fires,
+            # well before our longer client-side timeout.
+            self.assertEqual(idle.recv(1), b"")
         finally:
             idle.close()
             server.shutdown()
