@@ -29,6 +29,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(response["headers"]["Content-Type"], "text/html; charset=utf-8")
         self.assertIn(b"Hello from Python!", response["body"])
         self.assertIn(b'href="/about"', response["body"])
+        self.assertIn(b'href="/contact"', response["body"])
 
     def test_about_page(self):
         response = request("/about")
@@ -42,6 +43,25 @@ class ApplicationTests(unittest.TestCase):
     def test_about_page_head(self):
         response = request("/about", method="HEAD")
         get_response = request("/about")
+
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["headers"], get_response["headers"])
+        self.assertEqual(response["body"], b"")
+
+    def test_contact_page(self):
+        response = request("/contact")
+
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["headers"]["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn(b"<h1>Contact Us</h1>", response["body"])
+        self.assertIn(b"Message submission is not available yet.", response["body"])
+        self.assertIn(b"<fieldset disabled>", response["body"])
+        self.assertIn(b'href="/"', response["body"])
+        self.assertEqual(int(response["headers"]["Content-Length"]), len(response["body"]))
+
+    def test_contact_page_head(self):
+        response = request("/contact", method="HEAD")
+        get_response = request("/contact")
 
         self.assertEqual(response["status"], "200 OK")
         self.assertEqual(response["headers"], get_response["headers"])

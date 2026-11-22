@@ -14,6 +14,7 @@ python app.py
 Then open <http://127.0.0.1:8000> in a browser. The `/health` endpoint returns
 JSON and can be used to check that the application is running.
 The `/about` page describes the application.
+The `/contact` page displays a contact form; message submission is not yet available.
 
 Run the tests with:
 
