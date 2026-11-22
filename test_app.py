@@ -152,6 +152,34 @@ class ConnectionHandlingTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
+    def test_partial_request_timeout_is_dropped_quietly(self):
+        class ShortTimeoutHandler(TimeoutRequestHandler):
+            timeout = 0.5
+
+        server = make_server(
+            "127.0.0.1",
+            0,
+            application,
+            server_class=ThreadingWSGIServer,
+            handler_class=ShortTimeoutHandler,
+        )
+        errors = []
+        server.handle_error = lambda request, client_address: errors.append(
+            client_address
+        )
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        partial = socket.create_connection(("127.0.0.1", port))
+        try:
+            partial.settimeout(5)
+            partial.sendall(b"GET /health HTTP/1.1\r\nHost: x\r\n")
+            self.assertEqual(partial.recv(1), b"")
+            self.assertEqual(errors, [])
+        finally:
+            partial.close()
+            server.shutdown()
+            server.server_close()
+
     def test_environ_reports_multithread(self):
         seen = {}
 

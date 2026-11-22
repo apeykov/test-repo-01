@@ -293,7 +293,11 @@ class TimeoutRequestHandler(WSGIRequestHandler):
             self.send_error(414)
             return
 
-        if not self.parse_request():
+        try:
+            if not self.parse_request():
+                return
+        except TimeoutError:
+            self.close_connection = True
             return
 
         handler = ServerHandler(
