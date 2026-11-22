@@ -7,13 +7,14 @@ from wsgiref.simple_server import make_server
 STYLE = """
     :root {
       --bg: #f5f7fb; --card: #ffffff; --text: #1e2433; --muted: #5f6b85;
-      --accent: #5b5bf0; --accent-2: #8b5cf6; --border: #e3e7f0;
+      --accent: #5b5bf0; --accent-text: #4338ca; --accent-text-2: #6d28d9;
+      --fill-a: #4338ca; --fill-b: #6d28d9; --border: #e3e7f0;
       --shadow: 0 10px 30px rgba(30, 36, 51, .08);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #0f1220; --card: #181c30; --text: #eef0f8; --muted: #9aa5c4;
-        --border: #272d48; --shadow: 0 10px 30px rgba(0, 0, 0, .4);
+        --border: #272d48; --accent-text: #a5b4fc; --accent-text-2: #c4b5fd; --shadow: 0 10px 30px rgba(0, 0, 0, .4);
       }
     }
     * { box-sizing: border-box; }
@@ -32,7 +33,7 @@ STYLE = """
     }
     .brand {
       font-weight: 800; font-size: 1.15rem; margin-right: auto;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      background: linear-gradient(90deg, var(--accent-text), var(--accent-text-2));
       -webkit-background-clip: text; background-clip: text; color: transparent;
       text-decoration: none;
     }
@@ -40,12 +41,12 @@ STYLE = """
       color: var(--muted); text-decoration: none; padding: 8px 14px;
       border-radius: 999px; font-weight: 500; transition: .2s;
     }
-    nav a.link:hover { color: var(--accent); background: rgba(91, 91, 240, .1); }
+    nav a.link:hover { color: var(--accent-text); background: rgba(91, 91, 240, .1); }
     nav a.link.active { color: #fff; background: var(--accent); }
     main { flex: 1; width: 100%; max-width: 960px; margin: 0 auto; padding: 40px 20px; }
     .hero {
       text-align: center; padding: 56px 24px; border-radius: 24px; color: #fff;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      background: linear-gradient(135deg, var(--fill-a), var(--fill-b));
       box-shadow: var(--shadow);
     }
     .hero h1 { font-size: clamp(2rem, 6vw, 3.2rem); margin: 0 0 12px; }
@@ -69,7 +70,7 @@ STYLE = """
       padding: 32px; box-shadow: var(--shadow);
     }
     .notice {
-      background: rgba(91, 91, 240, .1); color: var(--accent);
+      background: rgba(91, 91, 240, .1); color: var(--accent-text);
       padding: 10px 16px; border-radius: 12px; font-weight: 500;
     }
     label { font-weight: 600; font-size: .92rem; }
@@ -84,10 +85,10 @@ STYLE = """
     button {
       font: inherit; font-weight: 600; color: #fff; border: 0; cursor: pointer;
       padding: 12px 26px; border-radius: 999px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      background: linear-gradient(90deg, var(--fill-a), var(--fill-b));
     }
     button:disabled { cursor: not-allowed; }
-    .back { display: inline-block; margin-top: 20px; color: var(--accent); font-weight: 600; text-decoration: none; }
+    .back { display: inline-block; margin-top: 20px; color: var(--accent-text); font-weight: 600; text-decoration: none; }
     .back:hover { text-decoration: underline; }
     footer { text-align: center; color: var(--muted); padding: 24px; font-size: .9rem; }
 """
@@ -98,8 +99,11 @@ NAV_ITEMS = [("/", "Home"), ("/about", "About"), ("/contact", "Contact")]
 def render_page(title, content, active):
     """Wrap page content in the shared layout (header, navigation, footer)."""
     links = "".join(
-        '<a class="link{}" href="{}">{}</a>'.format(
-            " active" if href == active else "", href, label
+        '<a class="link{}" href="{}"{}>{}</a>'.format(
+            " active" if href == active else "",
+            href,
+            ' aria-current="page"' if href == active else "",
+            label,
         )
         for href, label in NAV_ITEMS
     )
