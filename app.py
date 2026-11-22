@@ -16,6 +16,7 @@ HTML_PAGE = """<!doctype html>
       <h1>Hello from Python!</h1>
       <p>This is a small example web application.</p>
       <p><a href="/about">About</a></p>
+      <p><a href="/contact">Contact Us</a></p>
       <p><a href="/health">Check application health</a></p>
     </main>
   </body>
@@ -39,6 +40,31 @@ ABOUT_PAGE = """<!doctype html>
 </html>
 """
 
+CONTACT_PAGE = """<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Contact Us - Python demo app</title>
+  </head>
+  <body>
+    <main>
+      <h1>Contact Us</h1>
+      <p>Message submission is not available yet.</p>
+      <form>
+        <fieldset disabled>
+          <p><label for="name">Name</label><br><input id="name" name="name" type="text"></p>
+          <p><label for="email">Email</label><br><input id="email" name="email" type="email"></p>
+          <p><label for="message">Message</label><br><textarea id="message" name="message"></textarea></p>
+          <button type="submit">Send message</button>
+        </fieldset>
+      </form>
+      <p><a href="/">Back to home</a></p>
+    </main>
+  </body>
+</html>
+"""
+
 
 def application(environ, start_response):
     """Return a response for the requested path."""
@@ -50,6 +76,10 @@ def application(environ, start_response):
         content_type = "text/html; charset=utf-8"
     elif path == "/about":
         body = ABOUT_PAGE.encode("utf-8")
+        status = "200 OK"
+        content_type = "text/html; charset=utf-8"
+    elif path == "/contact":
+        body = CONTACT_PAGE.encode("utf-8")
         status = "200 OK"
         content_type = "text/html; charset=utf-8"
     elif path == "/health":
