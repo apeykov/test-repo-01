@@ -2,7 +2,11 @@ import json
 import unittest
 from io import BytesIO
 
-from app import application
+import socket
+import threading
+import urllib.request
+
+from app import application, create_server
 
 
 def request(path, method="GET"):
@@ -99,6 +103,23 @@ class ApplicationTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "404 Not Found")
         self.assertEqual(response["body"], b"Not found")
+
+
+class ConnectionHandlingTests(unittest.TestCase):
+    def test_idle_connection_does_not_block_requests(self):
+        server = create_server("127.0.0.1", 0)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        idle = socket.create_connection(("127.0.0.1", port))
+        try:
+            with urllib.request.urlopen(
+                "http://127.0.0.1:%d/health" % port, timeout=5
+            ) as response:
+                self.assertEqual(response.status, 200)
+        finally:
+            idle.close()
+            server.shutdown()
+            server.server_close()
 
 
 if __name__ == "__main__":

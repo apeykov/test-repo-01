@@ -1,7 +1,8 @@
 """Small example web application using only Python's standard library."""
 
 import json
-from wsgiref.simple_server import make_server
+from socketserver import ThreadingMixIn
+from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 
 STYLE = """
@@ -262,9 +263,27 @@ def application(environ, start_response):
     return [] if environ.get("REQUEST_METHOD") == "HEAD" else [body]
 
 
+class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    """Handle each connection in its own thread so idle ones cannot block others."""
+
+    daemon_threads = True
+
+
+class TimeoutRequestHandler(WSGIRequestHandler):
+    """Drop connections that stay idle instead of holding a thread forever."""
+
+    timeout = 15
+
+
 def create_server(host="127.0.0.1", port=8000):
     """Create the development server without starting it."""
-    return make_server(host, port, application)
+    return make_server(
+        host,
+        port,
+        application,
+        server_class=ThreadingWSGIServer,
+        handler_class=TimeoutRequestHandler,
+    )
 
 
 if __name__ == "__main__":
