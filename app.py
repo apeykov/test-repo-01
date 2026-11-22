@@ -46,7 +46,7 @@ def application(environ, start_response):
             ("Content-Length", str(len(body))),
         ],
     )
-    return [body]
+    return [] if environ.get("REQUEST_METHOD") == "HEAD" else [body]
 
 
 def create_server(host="127.0.0.1", port=8000):
